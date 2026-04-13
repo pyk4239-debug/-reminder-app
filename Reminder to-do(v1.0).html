@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#2d3748" />
+  <title>월간 리마인더</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>* { box-sizing: border-box; margin: 0; padding: 0; } body { background: #2d3748; }</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const STORAGE_KEY = "monthly-reminder-v1";
+
+    const initialData = [
+      { day: 5, label: "매월 5일", color: "#48bb78", bg: "#f0fff4", border: "#c6f6d5", items: [
+        { id: 1, text: "4대보험료 납부", done: false, icon: "🏥" },
+        { id: 2, text: "카드대금 납부", done: false, icon: "💳" },
+        { id: 3, text: "전기세 납부", done: false, icon: "⚡" },
+      ]},
+      { day: 9, label: "매월 9일", color: "#d69e2e", bg: "#fffff0", border: "#fefcbf", items: [
+        { id: 10, text: "지우회비 3만원 잔고 확인", done: false, icon: "💴" },
+      ]},
+      { day: 14, label: "매월 14일", color: "#805ad5", bg: "#faf5ff", border: "#e9d8fd", items: [
+        { id: 11, text: "급여이체 정리", done: false, icon: "📋" },
+      ]},
+      { day: 15, label: "매월 15일", color: "#3182ce", bg: "#ebf8ff", border: "#bee3f8", items: [
+        { id: 12, text: "직원 급여이체", done: false, icon: "💸" },
+      ]},
+      { day: 20, label: "매월 20일", color: "#e53e3e", bg: "#fff5f5", border: "#fed7d7", items: [
+        { id: 13, text: "카카오뱅크 삼성카드 대금 이체 165,400원", done: false, icon: "💳" },
+      ]},
+      { day: 25, label: "매월 25일", color: "#667eea", bg: "#ebf4ff", border: "#c3dafe", items: [
+        { id: 4, text: "선주, 주형 용돈", done: false, icon: "💰" },
+        { id: 5, text: "규순 월급", done: false, icon: "💵" },
+        { id: 6, text: "매입대금 결제", done: false, icon: "🧾" },
+        { id: 7, text: "원룸 월세 이체", done: false, icon: "🏠" },
+        { id: 8, text: "가스비 납부", done: false, icon: "🔥" },
+      ]},
+      { day: 29, label: "매월 29일", color: "#ed8936", bg: "#fffaf0", border: "#feebc8", items: [
+        { id: 9, text: "가스비 검침", done: false, icon: "📊" },
+      ]},
+    ];
+
+    const icons = ["📌", "💼", "📝", "🔔", "💡", "🗂️", "📦", "🧾"];
+    const colorPalette = [
+      { color: "#e53e3e", bg: "#fff5f5", border: "#fed7d7" },
+      { color: "#d69e2e", bg: "#fffff0", border: "#fefcbf" },
+      { color: "#38a169", bg: "#f0fff4", border: "#c6f6d5" },
+      { color: "#3182ce", bg: "#ebf8ff", border: "#bee3f8" },
+      { color: "#805ad5", bg: "#faf5ff", border: "#e9d8fd" },
+      { color: "#dd6b20", bg: "#fffaf0", border: "#feebc8" },
+    ];
+
+    function App() {
+      const today = new Date().getDate();
+      const [groups, setGroups] = useState(() => {
+        try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s) : initialData; } catch { return initialData; }
+      });
+      const [inputs, setInputs] = useState({});
+      const [adding, setAdding] = useState(null);
+      const [addingGroup, setAddingGroup] = useState(false);
+      const [newGroupDay, setNewGroupDay] = useState("");
+
+      useEffect(() => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(groups)); } catch {} }, [groups]);
+
+      const addGroup = () => {
+        const day = parseInt(newGroupDay);
+        if (!day || day < 1 || day > 31 || groups.find(g => g.day === day)) return;
+        const palette = colorPalette[groups.length % colorPalette.length];
+        setGroups([...groups, { day, label: `매월 ${day}일`, ...palette, items: [] }].sort((a, b) => a.day - b.day));
+        setNewGroupDay(""); setAddingGroup(false);
+      };
+
+      const deleteGroup = (day) => setGroups(groups.filter(g => g.day !== day));
+
+      const toggle = (groupDay, itemId) => setGroups(groups.map(g =>
+        g.day === groupDay ? { ...g, items: g.items.map(i => i.id === itemId ? { ...i, done: !i.done } : i) } : g
+      ));
+
+      const addItem = (groupDay) => {
+        const text = (inputs[groupDay] || "").trim();
+        if (!text) return;
+        const icon = icons[Math.floor(Math.random() * icons.length)];
+        setGroups(groups.map(g => g.day === groupDay ? { ...g, items: [...g.items, { id: Date.now(), text, done: false, icon }] } : g));
+        setInputs({ ...inputs, [groupDay]: "" }); setAdding(null);
+      };
+
+      const deleteItem = (groupDay, itemId) => setGroups(groups.map(g =>
+        g.day === groupDay ? { ...g, items: g.items.filter(i => i.id !== itemId) } : g
+      ));
+
+      const resetAll = () => setGroups(groups.map(g => ({ ...g, items: g.items.map(i => ({ ...i, done: false })) })));
+
+      const totalItems = groups.reduce((s, g) => s + g.items.length, 0);
+      const doneItems = groups.reduce((s, g) => s + g.items.filter(i => i.done).length, 0);
+      const progress = totalItems ? Math.round((doneItems / totalItems) * 100) : 0;
+      const nearest = [...groups].sort((a, b) => {
+        const da = a.day >= today ? a.day - today : 31 - today + a.day;
+        const db = b.day >= today ? b.day - today : 31 - today + b.day;
+        return da - db;
+      })[0];
+
+      return (
+        <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #2d3748 0%, #4a5568 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Segoe UI', sans-serif", padding: "24px" }}>
+          <div style={{ width: "100%", maxWidth: "460px" }}>
+
+            <div style={{ background: "white", borderRadius: "24px", padding: "28px", marginBottom: "16px", boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div>
+                  <h1 style={{ margin: 0, fontSize: "24px", fontWeight: 800, color: "#2d3748" }}>📅 월간 리마인더</h1>
+                  <p style={{ margin: "6px 0 0", color: "#a0aec0", fontSize: "14px" }}>
+                    오늘 {today}일 · 다음 예정: <strong style={{ color: nearest?.color }}>{nearest?.label}</strong>
+                  </p>
+                </div>
+                <button onClick={resetAll} style={{ background: "#f7fafc", border: "none", borderRadius: "10px", padding: "8px 12px", fontSize: "12px", color: "#718096", cursor: "pointer", fontWeight: 600 }}>초기화 🔄</button>
+              </div>
+              <div style={{ marginTop: "20px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                  <span style={{ fontSize: "13px", color: "#718096" }}>이번달 진행률</span>
+                  <span style={{ fontSize: "13px", fontWeight: 700, color: "#2d3748" }}>{doneItems}/{totalItems} 완료</span>
+                </div>
+                <div style={{ background: "#edf2f7", borderRadius: "99px", height: "10px", overflow: "hidden" }}>
+                  <div style={{ width: `${progress}%`, height: "100%", background: "linear-gradient(90deg, #667eea, #48bb78)", borderRadius: "99px", transition: "width 0.4s ease" }} />
+                </div>
+              </div>
+            </div>
+
+            {groups.map(group => {
+              const groupDone = group.items.filter(i => i.done).length;
+              const isToday = group.day === today;
+              const isPast = group.day < today;
+              return (
+                <div key={group.day} style={{ background: "white", borderRadius: "20px", padding: "22px", marginBottom: "14px", boxShadow: isToday ? `0 0 0 3px ${group.color}, 0 10px 30px rgba(0,0,0,0.15)` : "0 4px 20px rgba(0,0,0,0.1)" }}>
+                  <div style={{ display: "flex", alignItems: "center", marginBottom: "16px", gap: "10px" }}>
+                    <div style={{ width: "44px", height: "44px", borderRadius: "12px", background: group.bg, border: `2px solid ${group.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px", fontWeight: 800, color: group.color }}>{group.day}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, color: "#2d3748", fontSize: "15px" }}>
+                        {group.label}
+                        {isToday && <span style={{ marginLeft: "8px", fontSize: "11px", background: group.color, color: "white", padding: "2px 8px", borderRadius: "99px" }}>오늘!</span>}
+                        {isPast && !isToday && <span style={{ marginLeft: "8px", fontSize: "11px", background: "#e2e8f0", color: "#718096", padding: "2px 8px", borderRadius: "99px" }}>지남</span>}
+                      </div>
+                      <div style={{ fontSize: "12px", color: "#a0aec0", marginTop: "2px" }}>{groupDone}/{group.items.length} 완료</div>
+                    </div>
+                    <span onClick={() => deleteGroup(group.day)} style={{ color: "#e2e8f0", fontSize: "16px", cursor: "pointer", padding: "4px" }}
+                      onMouseEnter={e => e.currentTarget.style.color = "#fc8181"}
+                      onMouseLeave={e => e.currentTarget.style.color = "#e2e8f0"}>🗑️</span>
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {group.items.map(item => (
+                      <div key={item.id} onClick={() => toggle(group.day, item.id)}
+                        style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", borderRadius: "12px", background: item.done ? "#f7fafc" : group.bg, border: `1.5px solid ${item.done ? "#e2e8f0" : group.border}`, cursor: "pointer", transition: "all 0.2s" }}>
+                        <div style={{ width: "22px", height: "22px", borderRadius: "6px", border: `2px solid ${item.done ? group.color : group.border}`, background: item.done ? group.color : "white", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.2s" }}>
+                          {item.done && <span style={{ color: "white", fontSize: "13px", fontWeight: 800 }}>✓</span>}
+                        </div>
+                        <span style={{ fontSize: "16px" }}>{item.icon}</span>
+                        <span style={{ flex: 1, fontSize: "14px", fontWeight: 600, color: item.done ? "#a0aec0" : "#2d3748", textDecoration: item.done ? "line-through" : "none", transition: "all 0.2s" }}>{item.text}</span>
+                        <span onClick={e => { e.stopPropagation(); deleteItem(group.day, item.id); }}
+                          style={{ color: "#cbd5e0", fontSize: "14px", cursor: "pointer", padding: "0 2px" }}
+                          onMouseEnter={e => e.currentTarget.style.color = "#fc8181"}
+                          onMouseLeave={e => e.currentTarget.style.color = "#cbd5e0"}>✕</span>
+                      </div>
+                    ))}
+
+                    {adding === group.day ? (
+                      <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+                        <input autoFocus value={inputs[group.day] || ""}
+                          onChange={e => setInputs({ ...inputs, [group.day]: e.target.value })}
+                          onKeyDown={e => { if (e.key === "Enter") addItem(group.day); if (e.key === "Escape") setAdding(null); }}
+                          placeholder="할 일 입력..."
+                          style={{ flex: 1, padding: "10px 12px", borderRadius: "10px", border: `2px solid ${group.border}`, fontSize: "14px", outline: "none", background: group.bg }} />
+                        <button onClick={() => addItem(group.day)} style={{ padding: "10px 14px", background: group.color, color: "white", border: "none", borderRadius: "10px", fontSize: "16px", cursor: "pointer", fontWeight: "bold" }}>+</button>
+                        <button onClick={() => setAdding(null)} style={{ padding: "10px 12px", background: "#edf2f7", color: "#718096", border: "none", borderRadius: "10px", fontSize: "13px", cursor: "pointer" }}>✕</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setAdding(group.day)}
+                        style={{ width: "100%", padding: "10px", background: "none", border: `1.5px dashed ${group.border}`, borderRadius: "12px", color: group.color, fontSize: "13px", cursor: "pointer", fontWeight: 600, marginTop: "4px" }}>
+                        + 할 일 추가
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            <p style={{ textAlign: "center", color: "#718096", fontSize: "12px", marginTop: "8px", marginBottom: "14px" }}>항목을 탭하면 완료 처리돼요 ✨</p>
+
+            {addingGroup ? (
+              <div style={{ background: "white", borderRadius: "20px", padding: "22px", marginBottom: "14px", boxShadow: "0 4px 20px rgba(0,0,0,0.1)", display: "flex", gap: "10px", alignItems: "center" }}>
+                <input autoFocus type="number" min="1" max="31" value={newGroupDay}
+                  onChange={e => setNewGroupDay(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") addGroup(); if (e.key === "Escape") setAddingGroup(false); }}
+                  placeholder="날짜 (1~31)"
+                  style={{ flex: 1, padding: "12px 14px", borderRadius: "12px", border: "2px solid #c3dafe", fontSize: "15px", outline: "none", background: "#ebf8ff" }} />
+                <button onClick={addGroup} style={{ padding: "12px 16px", background: "#667eea", color: "white", border: "none", borderRadius: "12px", fontSize: "15px", cursor: "pointer", fontWeight: "bold" }}>추가</button>
+                <button onClick={() => setAddingGroup(false)} style={{ padding: "12px 14px", background: "#edf2f7", color: "#718096", border: "none", borderRadius: "12px", fontSize: "13px", cursor: "pointer" }}>✕</button>
+              </div>
+            ) : (
+              <button onClick={() => setAddingGroup(true)}
+                style={{ width: "100%", padding: "16px", background: "rgba(255,255,255,0.1)", border: "2px dashed rgba(255,255,255,0.3)", borderRadius: "20px", color: "white", fontSize: "14px", cursor: "pointer", fontWeight: 600, marginBottom: "14px" }}>
+                + 날짜 추가
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
