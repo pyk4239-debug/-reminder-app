@@ -1,0 +1,18 @@
+{
+  "name": "Reminder",
+  "short_name": "Reminder",
+  "description": "월간 리마인더",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2d3748",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "reminder-icon-R2.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
